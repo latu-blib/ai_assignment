@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+    <title>Snake Game</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Snake</h1>
+    <canvas id="gameCanvas" width="400"
+            height="400"></canvas>
+    <p id="info"></p>
+
+    <script>
+        // ===== GAME SETUP =====
+        const canvas =
+            document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const gridSize = 20;
+        const tileCount = canvas.width / gridSize;
+
+        // ===== INITIAL STATE =====
+        let snake = [
+            { x: 10, y: 10 },
+            { x: 9, y: 10 },
+            { x: 8, y: 10 }
+        ];
+        let direction = { x: 1, y: 0 };
+        let food = { x: 15, y: 15 };
+        let score = 0;
+
+        // ===== DRAWING =====
+        const drawGame = () => {
+            ctx.clearRect(0, 0,
+                canvas.width, canvas.height);
+
+            ctx.fillStyle = "red";
+            ctx.fillRect(
+                food.x * gridSize,
+                food.y * gridSize,
+                gridSize, gridSize
+            );
+
+            ctx.fillStyle = "black";
+            for (const segment of snake) {
+                ctx.fillRect(
+                    segment.x * gridSize,
+                    segment.y * gridSize,
+                    gridSize, gridSize
+                );
+            }
+        };
+
+        drawGame();
+
+        // ===================================
+        // BUILD THE GAME FROM HERE
+        // ===================================
+        //
+        // Use your custom agent in VS Code Chat 
+        // to guide your work through each step. 
+        // Commit regularly.
+        //
+        // Step 1: Movement (game loop)
+        // Step 2: Keyboard controls (arrow keys)
+        // Step 3: Eating and growing
+        // Step 4: Game over
+        // Step 5: Improvements
+        //
+        // ===================================
+        let turnQueue = [];
+
+        const directions = {
+            up: { x: 0, y: -1 },
+            down: { x: 0, y: 1 },
+            left: { x: -1, y: 0 },
+            right: { x: 1, y: 0 }
+        };
+
+        const keyDirections = {
+            ArrowUp: "up", KeyW: "up",
+            ArrowDown: "down", KeyS: "down",
+            ArrowLeft: "left", KeyA: "left",
+            ArrowRight: "right", KeyD: "right",
+        };
+        window.addEventListener("keydown", (event) => {
+            const directionName = keyDirections[event.code];
+            queueTurn(directionName);
+        });
+
+        function queueTurn(name) {
+            const nextDirection = directions[name];
+            if (!nextDirection || turnQueue.length >= 2) return;
+
+            const lastDirection = turnQueue.at(-1) ?? direction;
+            if (nextDirection.x + lastDirection.x === 0 && nextDirection.y + lastDirection.y === 0) return;
+            turnQueue.push(nextDirection);
+        }
+
+        function placeFood() {
+            const freeCells = [];
+            for (let y = 0; y < gridSize; y += 1) {
+                for (let x = 0; x < gridSize; x += 1) {
+                    if (!snake.some((segment) => segment.x === x && segment.y === y)) freeCells.push({ x, y });
+                }
+            }
+            return freeCells.length ? freeCells[Math.floor(Math.random() * freeCells.length)] : null;
+        }
+
+        function tick() {
+            if (turnQueue.length) direction = turnQueue.shift();
+            const head = snake[0];
+            const nextHead = { x: head.x + direction.x, y: head.y + direction.y };
+            const eating = food !== null && nextHead.x === food.x && nextHead.y === food.y;
+            const body = eating ? snake : snake.slice(0, -1);
+            const hitWall = nextHead.x < 0 || nextHead.x >= gridSize || nextHead.y < 0 || nextHead.y >= gridSize;
+            const hitSelf = body.some((segment) => segment.x === nextHead.x && segment.y === nextHead.y);
+
+            if (hitWall || hitSelf) {
+                finishGame("over");
+                return;
+            }
+
+            snake.unshift(nextHead);
+            if (eating) {
+                score += 10;
+                //if (score > bestScore) {
+                    //bestScore = score;
+                    //saveBestScore();
+                //}
+                food = placeFood();
+                //updateScore();
+                if (!food) {
+                    finishGame("won");
+                    return;
+                }
+            } else {
+                snake.pop();
+            }
+            drawGame();
+        }
+
+        //restartButton.addEventListener("click", startGame);
+        setInterval(tick, 200);
+
+    </script>
+
+</body>
+</html>
