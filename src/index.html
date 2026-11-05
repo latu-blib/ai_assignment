@@ -25,6 +25,10 @@
         const ctx = canvas.getContext("2d");
         const gridSize = 20;
         const tileCount = canvas.width / gridSize;
+        const statusElement = document.querySelector("#status");
+        const playButton = document.querySelector("#play-button");
+        const pauseButton = document.querySelector("#pause-button");
+        const restartButton = document.querySelector("#restart-button");
 
         // ===== INITIAL STATE =====
         let snake = [
@@ -76,6 +80,8 @@
         //
         // ===================================
         let turnQueue = [];
+        let gameState = "Ready";
+        let timerId ;
 
         const directions = {
             up: { x: 0, y: -1 },
@@ -96,6 +102,9 @@
         });
 
         function queueTurn(name) {
+            if (gameState === "over" || gameState === "won" || gameState === "Ready") startGame();
+            else if (gameState === "paused") pauseGame();
+
             const nextDirection = directions[name];
             if (!nextDirection || turnQueue.length >= 2) return;
 
@@ -103,6 +112,55 @@
             if (nextDirection.x + lastDirection.x === 0 && nextDirection.y + lastDirection.y === 0) return;
             turnQueue.push(nextDirection);
         }
+
+
+        function setGameState(nextState) {
+            gameState = nextState;
+            //veil.hidden = nextState === "running";
+            pauseButton.disabled = nextState !== "running" && nextState !== "paused";
+            pauseButton.innerHTML = nextState === "paused" ? 'Resume <span aria-hidden="true">▶</span>' : 'Pause <span aria-hidden="true">Ⅱ</span>';
+            statusElement.textContent = nextState.toUpperCase();
+
+            const messages = {
+                ready: ["READY WHEN YOU ARE", "Make a run.", "Guide the snake to the fruit. The longer you get, the faster it goes.", "Start game"],
+                paused: ["TAKE A BREATHER", "Paused.", "Your run is waiting right here.", "Resume run"],
+                over: ["THAT'S A WRAP", "Run over.", `You scored ${score} points. Every run is a new chance.`, "Play again"],
+                won: ["PERFECT RUN", "You filled it!", `A perfect board and ${score} points.`, "Play again"],
+            }[nextState];
+        }
+
+        function startGame() {
+            window.clearInterval(timerId);
+            resetGame();
+            setGameState("running");
+        }
+
+        function pauseGame() {
+            if (gameState === "running") {
+                window.clearInterval(timerId);
+                setGameState("paused");
+            } else if (gameState === "paused") {
+                setGameState("running");
+            }
+        }
+
+        function finishGame(nextState) {
+            window.clearInterval(timerId);
+            setGameState(nextState);
+            drawGame();
+        }
+
+        function resetGame() {
+            snake = [{ x: 8, y: 10 }, { x: 7, y: 10 }, { x: 6, y: 10 }];
+            direction = directions.right;
+            turnQueue = [];
+            score = 0;
+            food = placeFood();
+            //updateScore();
+            drawGame();
+}
+
+        
 
         function placeFood() {
             const freeCells = [];
@@ -147,7 +205,15 @@
             drawGame();
         }
 
+        //playButton.addEventListener("click", () => {
+            //if (gameState === "paused") pauseGame();
+            //else startGame();
+        //});
+        //pauseButton.addEventListener("click", pauseGame);
         //restartButton.addEventListener("click", startGame);
+        document.querySelectorAll("[data-turn]").forEach((button) => {
+            button.addEventListener("click", () => queueTurn(button.dataset.turn));
+        });
         setInterval(tick, 200);
 
     </script>
