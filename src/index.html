@@ -15,11 +15,16 @@
 
     <h1>Snake</h1>
     <p id="status" aria-live="polite">Paina Aloita pelataksesi.</p>
+    <p>Pisteet: <span id="score">0</span></p>
+    <section class="score-block" aria-label="Score">
+        <div class="score-meter"><span id="score-meter"></span></div>
+        <div class="best-row"><span>PERSONAL BEST</span><strong id="best">000</strong></div>
+    </section>
     <canvas id="gameCanvas" width="400"
             height="400"></canvas>
-            <button id="play-button" type="button">Aloita</button>
+            <button id="play-button" type="button">Aloita/Restart</button>
             <button class="utility-button" id="pause-button" type="button" disabled>Pause <span aria-hidden="true">Ⅱ</span></button>
-            <button class="utility-button" id="restart-button" type="button" disabled>Restart</button>
+            <!-- <button class="utility-button" id="restart-button" type="button" disabled>Restart</button> -->
             <p id="info"></p>
             <div class="dpad" aria-label="Touch direction controls">
               <span aria-hidden="true"></span>
@@ -40,7 +45,10 @@
         const statusElement = document.querySelector("#status");
         const playButton = document.querySelector("#play-button");
         const pauseButton = document.querySelector("#pause-button");
-        const restartButton = document.querySelector("#restart-button");
+        const bestElement = document.querySelector("#best");
+        const scoreElement = document.querySelector("#score");
+        const scoreMeter = document.querySelector("#score-meter");
+        //const restartButton = document.querySelector("#restart-button");
 
         // ===== INITIAL STATE =====
         let snake = [
@@ -94,6 +102,7 @@
         let turnQueue = [];
         let gameState = "Ready";
         let timerId ;
+        let bestScore = loadBestScore();
 
         const directions = {
             up: { x: 0, y: -1 },
@@ -117,7 +126,29 @@
             window.clearInterval(timerId);
             const delay = Math.max(72, 150 - Math.floor(score / 50) * 8);
             timerId = window.setInterval(tick, delay);
-}
+        }
+
+        function loadBestScore() {
+            try {
+                return Number(window.localStorage.getItem("snake-best-score")) || 0;
+            } catch {
+                return 0;
+            }
+        }
+
+        function saveBestScore() {
+            try {
+                window.localStorage.setItem("snake-best-score", String(bestScore));
+            } catch {
+                return;
+            }
+        }
+
+        function updateScore() {
+            scoreElement.textContent = String(score).padStart(3, "0");
+            bestElement.textContent = String(bestScore).padStart(3, "0");
+            scoreMeter.style.width = `${Math.min(100, 25 + score)}%`;
+        }
 
         function queueTurn(name) {
             if (gameState === "over" || gameState === "won" || gameState === "Ready") startGame();
@@ -134,16 +165,15 @@
 
         function setGameState(nextState) {
             gameState = nextState;
-            //veil.hidden = nextState === "running";
             pauseButton.disabled = nextState !== "running" && nextState !== "paused";
             pauseButton.innerHTML = nextState === "paused" ? 'Resume <span aria-hidden="true">▶</span>' : 'Pause <span aria-hidden="true">Ⅱ</span>';
             statusElement.textContent = nextState.toUpperCase();
 
             const messages = {
-                ready: ["READY WHEN YOU ARE", "Start game"],
-                paused: ["Paused.", "Resume run"],
-                over: ["Run over.", "Play again"],
-                won: ["PERFECT RUN", "Play again"],
+                ready: ["Start game"],
+                paused: ["Resume run"],
+                over: ["Run over."],
+                won: ["PERFECT RUN"],
             }[nextState];
         }
 
@@ -176,7 +206,7 @@
             turnQueue = [];
             score = 0;
             food = placeFood();
-            //updateScore();
+            updateScore();
             drawGame();
 }
 
@@ -209,12 +239,12 @@
             snake.unshift(nextHead);
             if (eating) {
                 score += 10;
-                //if (score > bestScore) {
-                    //bestScore = score;
-                    //saveBestScore();
-                //}
+                if (score > bestScore) {
+                    bestScore = score;
+                    saveBestScore();
+                }
                 food = placeFood();
-                //updateScore();
+                updateScore();
                 if (!food) {
                     finishGame("won");
                     return;
@@ -230,7 +260,10 @@
             else startGame();
         });
         pauseButton.addEventListener("click", pauseGame);
-        restartButton.addEventListener("click", startGame);
+        //restartButton.addEventListener("click", () => {
+        //    startGame();
+        //});
+        bestElement.textContent = String(bestScore).padStart(3, "0");
         document.querySelectorAll("[data-turn]").forEach((button) => {
             button.addEventListener("click", () => queueTurn(button.dataset.turn));
         });

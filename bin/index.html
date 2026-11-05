@@ -14,9 +14,26 @@
 <body>
 
     <h1>Snake</h1>
+    <p id="status" aria-live="polite">Paina Aloita pelataksesi.</p>
+    <p>Pisteet: <span id="score">0</span></p>
+    <section class="score-block" aria-label="Score">
+        <div class="score-meter"><span id="score-meter"></span></div>
+        <div class="best-row"><span>PERSONAL BEST</span><strong id="best">000</strong></div>
+    </section>
     <canvas id="gameCanvas" width="400"
             height="400"></canvas>
-    <p id="info"></p>
+            <button id="play-button" type="button">Aloita/Restart</button>
+            <button class="utility-button" id="pause-button" type="button" disabled>Pause <span aria-hidden="true">Ⅱ</span></button>
+            <!-- <button class="utility-button" id="restart-button" type="button" disabled>Restart</button> -->
+            <p id="info"></p>
+            <div class="dpad" aria-label="Touch direction controls">
+              <span aria-hidden="true"></span>
+              <button type="button" data-turn="up" aria-label="Move up">↑</button>
+              <span aria-hidden="true"></span>
+              <button type="button" data-turn="left" aria-label="Move left">←</button>
+              <button type="button" data-turn="down" aria-label="Move down">↓</button>
+              <button type="button" data-turn="right" aria-label="Move right">→</button>
+            </div>
 
     <script>
         // ===== GAME SETUP =====
@@ -25,6 +42,13 @@
         const ctx = canvas.getContext("2d");
         const gridSize = 20;
         const tileCount = canvas.width / gridSize;
+        const statusElement = document.querySelector("#status");
+        const playButton = document.querySelector("#play-button");
+        const pauseButton = document.querySelector("#pause-button");
+        const bestElement = document.querySelector("#best");
+        const scoreElement = document.querySelector("#score");
+        const scoreMeter = document.querySelector("#score-meter");
+        //const restartButton = document.querySelector("#restart-button");
 
         // ===== INITIAL STATE =====
         let snake = [
@@ -76,6 +100,9 @@
         //
         // ===================================
         let turnQueue = [];
+        let gameState = "Ready";
+        let timerId ;
+        let bestScore = loadBestScore();
 
         const directions = {
             up: { x: 0, y: -1 },
@@ -95,7 +122,38 @@
             queueTurn(directionName);
         });
 
+        function startTimer() {
+            window.clearInterval(timerId);
+            const delay = Math.max(72, 150 - Math.floor(score / 50) * 8);
+            timerId = window.setInterval(tick, delay);
+        }
+
+        function loadBestScore() {
+            try {
+                return Number(window.localStorage.getItem("snake-best-score")) || 0;
+            } catch {
+                return 0;
+            }
+        }
+
+        function saveBestScore() {
+            try {
+                window.localStorage.setItem("snake-best-score", String(bestScore));
+            } catch {
+                return;
+            }
+        }
+
+        function updateScore() {
+            scoreElement.textContent = String(score).padStart(3, "0");
+            bestElement.textContent = String(bestScore).padStart(3, "0");
+            scoreMeter.style.width = `${Math.min(100, 25 + score)}%`;
+        }
+
         function queueTurn(name) {
+            if (gameState === "over" || gameState === "won" || gameState === "Ready") startGame();
+            else if (gameState === "paused") pauseGame();
+
             const nextDirection = directions[name];
             if (!nextDirection || turnQueue.length >= 2) return;
 
@@ -103,6 +161,56 @@
             if (nextDirection.x + lastDirection.x === 0 && nextDirection.y + lastDirection.y === 0) return;
             turnQueue.push(nextDirection);
         }
+
+
+        function setGameState(nextState) {
+            gameState = nextState;
+            pauseButton.disabled = nextState !== "running" && nextState !== "paused";
+            pauseButton.innerHTML = nextState === "paused" ? 'Resume <span aria-hidden="true">▶</span>' : 'Pause <span aria-hidden="true">Ⅱ</span>';
+            statusElement.textContent = nextState.toUpperCase();
+
+            const messages = {
+                ready: ["Start game"],
+                paused: ["Resume run"],
+                over: ["Run over."],
+                won: ["PERFECT RUN"],
+            }[nextState];
+        }
+
+        function startGame() {
+            window.clearInterval(timerId);
+            resetGame();
+            startTimer();
+            setGameState("running");
+        }
+
+        function pauseGame() {
+            if (gameState === "running") {
+                window.clearInterval(timerId);
+                setGameState("paused");
+            } else if (gameState === "paused") {
+                setGameState("running");
+                startTimer();
+            }
+        }
+
+        function finishGame(nextState) {
+            window.clearInterval(timerId);
+            setGameState(nextState);
+            drawGame();
+        }
+
+        function resetGame() {
+            snake = [{ x: 8, y: 10 }, { x: 7, y: 10 }, { x: 6, y: 10 }];
+            direction = directions.right;
+            turnQueue = [];
+            score = 0;
+            food = placeFood();
+            updateScore();
+            drawGame();
+}
+
+        
 
         function placeFood() {
             const freeCells = [];
@@ -131,12 +239,12 @@
             snake.unshift(nextHead);
             if (eating) {
                 score += 10;
-                //if (score > bestScore) {
-                    //bestScore = score;
-                    //saveBestScore();
-                //}
+                if (score > bestScore) {
+                    bestScore = score;
+                    saveBestScore();
+                }
                 food = placeFood();
-                //updateScore();
+                updateScore();
                 if (!food) {
                     finishGame("won");
                     return;
@@ -147,8 +255,18 @@
             drawGame();
         }
 
-        //restartButton.addEventListener("click", startGame);
-        setInterval(tick, 200);
+        playButton.addEventListener("click", () => {
+            if (gameState === "paused") pauseGame();
+            else startGame();
+        });
+        pauseButton.addEventListener("click", pauseGame);
+        //restartButton.addEventListener("click", () => {
+        //    startGame();
+        //});
+        bestElement.textContent = String(bestScore).padStart(3, "0");
+        document.querySelectorAll("[data-turn]").forEach((button) => {
+            button.addEventListener("click", () => queueTurn(button.dataset.turn));
+        });
 
     </script>
 
