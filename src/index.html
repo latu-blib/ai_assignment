@@ -16,7 +16,18 @@
     <h1>Snake</h1>
     <canvas id="gameCanvas" width="400"
             height="400"></canvas>
-    <p id="info"></p>
+            <button id="play-button" type="button">Aloita</button>
+            <button class="utility-button" id="pause-button" type="button" disabled>Pause <span aria-hidden="true">Ⅱ</span></button>
+            <button class="utility-button" id="restart-button" type="button" disabled>Restart</button>
+            <p id="info"></p>
+            <div class="dpad" aria-label="Touch direction controls">
+              <span aria-hidden="true"></span>
+              <button type="button" data-turn="up" aria-label="Move up">↑</button>
+              <span aria-hidden="true"></span>
+              <button type="button" data-turn="left" aria-label="Move left">←</button>
+              <button type="button" data-turn="down" aria-label="Move down">↓</button>
+              <button type="button" data-turn="right" aria-label="Move right">→</button>
+            </div>
 
     <script>
         // ===== GAME SETUP =====
@@ -122,10 +133,10 @@
             statusElement.textContent = nextState.toUpperCase();
 
             const messages = {
-                ready: ["READY WHEN YOU ARE", "Make a run.", "Guide the snake to the fruit. The longer you get, the faster it goes.", "Start game"],
-                paused: ["TAKE A BREATHER", "Paused.", "Your run is waiting right here.", "Resume run"],
-                over: ["THAT'S A WRAP", "Run over.", `You scored ${score} points. Every run is a new chance.`, "Play again"],
-                won: ["PERFECT RUN", "You filled it!", `A perfect board and ${score} points.`, "Play again"],
+                ready: ["READY WHEN YOU ARE", "Start game"],
+                paused: ["Paused.", "Resume run"],
+                over: ["Run over.", "Play again"],
+                won: ["PERFECT RUN", "Play again"],
             }[nextState];
         }
 
@@ -205,12 +216,12 @@
             drawGame();
         }
 
-        //playButton.addEventListener("click", () => {
-            //if (gameState === "paused") pauseGame();
-            //else startGame();
-        //});
-        //pauseButton.addEventListener("click", pauseGame);
-        //restartButton.addEventListener("click", startGame);
+        playButton.addEventListener("click", () => {
+            if (gameState === "paused") pauseGame();
+            else startGame();
+        });
+        pauseButton.addEventListener("click", pauseGame);
+        restartButton.addEventListener("click", startGame);
         document.querySelectorAll("[data-turn]").forEach((button) => {
             button.addEventListener("click", () => queueTurn(button.dataset.turn));
         });
