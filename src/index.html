@@ -14,6 +14,7 @@
 <body>
 
     <h1>Snake</h1>
+    <p id="status" aria-live="polite">Paina Aloita pelataksesi.</p>
     <canvas id="gameCanvas" width="400"
             height="400"></canvas>
             <button id="play-button" type="button">Aloita</button>
@@ -112,6 +113,12 @@
             queueTurn(directionName);
         });
 
+        function startTimer() {
+            window.clearInterval(timerId);
+            const delay = Math.max(72, 150 - Math.floor(score / 50) * 8);
+            timerId = window.setInterval(tick, delay);
+}
+
         function queueTurn(name) {
             if (gameState === "over" || gameState === "won" || gameState === "Ready") startGame();
             else if (gameState === "paused") pauseGame();
@@ -143,6 +150,7 @@
         function startGame() {
             window.clearInterval(timerId);
             resetGame();
+            startTimer();
             setGameState("running");
         }
 
@@ -152,6 +160,7 @@
                 setGameState("paused");
             } else if (gameState === "paused") {
                 setGameState("running");
+                startTimer();
             }
         }
 
@@ -225,7 +234,6 @@
         document.querySelectorAll("[data-turn]").forEach((button) => {
             button.addEventListener("click", () => queueTurn(button.dataset.turn));
         });
-        setInterval(tick, 200);
 
     </script>
 
